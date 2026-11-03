@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reflections | Aura</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+    <main class="page-shell reflections-page">
+        <a class="brand" href="/">au<span class="brand-mark">ra</span></a>
+        <span class="eyebrow">Your private space</span>
+        <h1>My Reflections</h1>
+        <p>Revisit your completed check-ins at your own pace. These entries are for personal reflection, not clinical tracking or diagnosis.</p>
+
+        {% if error %}
+            <section class="reflections-notice" role="status">
+                <p>{{ error }}</p>
+                <a class="button button--quiet" href="{{ url_for('reflections') }}">Try again</a>
+            </section>
+        {% elif results %}
+            <div class="reflection-list">
+                {% for result in results %}
+                    <article class="reflection-card">
+                        <div>
+                            <h2>{{ result.title }} check-in</h2>
+                            <p class="reflection-date">Completed {{ result.completed_at }}</p>
+                        </div>
+                        <div class="reflection-score">
+                            <strong>{{ result.score }} / 40</strong>
+                            <span>{{ result.level|title }} range</span>
+                        </div>
+                        <a class="text-link" href="{{ url_for('quiz', quiz_type=result.quiz_type) }}">Retake check-in</a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <section class="reflections-empty">
+                <h2>No reflections yet</h2>
+                <p>Your completed check-ins will appear here. When you are ready, choose one to get started.</p>
+                <a class="button" href="{{ url_for('home') }}#check-ins">Explore check-ins</a>
+            </section>
+        {% endif %}
+
+        <div class="hero-actions">
+            <a class="button button--quiet" href="{{ url_for('home') }}">Return home</a>
+        </div>
+    </main>
+</body>
+</html>

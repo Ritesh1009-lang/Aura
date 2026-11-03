@@ -3,14 +3,18 @@
 Run with: .venv\\Scripts\\python app.py
 """
 
+import base64
+import hashlib
+import json
 import os
 import re
 import secrets
-from datetime import date
+from datetime import date, datetime, timezone
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 import httpx
+from cryptography.fernet import Fernet, InvalidToken
 from supabase import create_client
 from supabase_auth.errors import AuthError, AuthInvalidCredentialsError
 
@@ -56,6 +60,36 @@ def supabase_admin_client():
     if not SUPABASE_SECRET_KEY:
         raise RuntimeError("SUPABASE_SECRET_KEY is required for secure server-side result storage.")
     return create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+
+
+def _supabase_token_cipher():
+    secret = app.config["SECRET_KEY"].encode("utf-8")
+    key = base64.urlsafe_b64encode(hashlib.sha256(secret).digest())
+    return Fernet(key)
+
+
+def _encrypt_supabase_tokens(auth_session):
+    tokens = {
+        "access_token": auth_session.access_token,
+        "refresh_token": auth_session.refresh_token,
+    }
+    if not all(tokens.values()):
+        raise ValueError("Supabase did not return a complete auth session.")
+    encrypted_tokens = _supabase_token_cipher().encrypt(json.dumps(tokens).encode("utf-8"))
+    return encrypted_tokens.decode("ascii")
+
+
+def _load_supabase_tokens(encrypted_tokens):
+    if not encrypted_tokens:
+        return None
+    try:
+        token_data = _supabase_token_cipher().decrypt(encrypted_tokens.encode("ascii"))
+        tokens = json.loads(token_data)
+    except (InvalidToken, AttributeError, TypeError, UnicodeEncodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(tokens, dict) or not tokens.get("access_token") or not tokens.get("refresh_token"):
+        return None
+    return tokens
 
 
 def login_error_code(error):
@@ -136,8 +170,12 @@ def login():
         if user is not None and not (getattr(user, "email_confirmed_at", None) or getattr(user, "confirmed_at", None)):
             return redirect(url_for("login", error="unconfirmed"))
         return redirect(url_for("login", error="service"))
-    user_metadata = user.user_metadata or {}
     session.clear()
+    try:
+        session["_supabase_tokens"] = _encrypt_supabase_tokens(auth_session)
+    except (AttributeError, TypeError, ValueError):
+        return redirect(url_for("login", error="service"))
+    user_metadata = user.user_metadata or {}
     session["username"] = user_metadata.get("username", email.split("@", 1)[0])
     session["user_id"] = str(user.id)
     session["email"] = user.email
@@ -221,6 +259,52 @@ def welcome():
 def logout():
     session.clear()
     return redirect(url_for("home"))
+
+
+@app.get("/reflections")
+def reflections():
+    if not session.get("user_id") or not session.get("username"):
+        return redirect(url_for("login"))
+    tokens = _load_supabase_tokens(session.get("_supabase_tokens"))
+    if tokens is None:
+        return render_template(
+            "reflections.html",
+            results=[],
+            error="Please sign out and sign in again to securely load your reflections.",
+        )
+    try:
+        client = supabase_client()
+        auth_response = client.auth.set_session(tokens["access_token"], tokens["refresh_token"])
+        refreshed_session = auth_response.session or client.auth.get_session()
+        if refreshed_session is None:
+            raise RuntimeError("Supabase did not restore the authenticated session.")
+        session["_supabase_tokens"] = _encrypt_supabase_tokens(refreshed_session)
+        response = (
+            client.table("quiz_results")
+            .select("quiz_type,score,created_at")
+            .eq("user_id", session["user_id"])
+            .order("created_at", desc=True)
+            .execute()
+        )
+        results = []
+        for row in response.data:
+            score = int(row["score"])
+            created_at = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+            results.append({
+                "quiz_type": row["quiz_type"],
+                "title": "Digital balance" if row["quiz_type"] == "phone_addiction" else row["quiz_type"].title(),
+                "score": score,
+                "level": "low" if score <= 15 else "moderate" if score <= 27 else "high",
+                "completed_at": created_at.astimezone(timezone.utc).strftime("%b %d, %Y").replace(" 0", " "),
+            })
+    except Exception:
+        app.logger.exception("Unable to load quiz reflections")
+        return render_template(
+            "reflections.html",
+            results=[],
+            error="We could not load your reflections right now. Please try again later.",
+        )
+    return render_template("reflections.html", results=results, error=None)
 
 
 @app.post("/chat")
