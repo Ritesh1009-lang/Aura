@@ -19,7 +19,7 @@ archive/               Superseded pages, databases, and the old standalone quiz 
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open aura-livid-tau.vercel.app in a browser.
+Open "aura-livid-tau.vercel.app" in a browser.
 
 ## Supabase setup
 
