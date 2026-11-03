@@ -10,7 +10,9 @@ from datetime import date
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
+import httpx
 from supabase import create_client
+from supabase_auth.errors import AuthError, AuthInvalidCredentialsError
 
 load_dotenv()
 
@@ -54,6 +56,16 @@ def supabase_admin_client():
     if not SUPABASE_SECRET_KEY:
         raise RuntimeError("SUPABASE_SECRET_KEY is required for secure server-side result storage.")
     return create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+
+
+def login_error_code(error):
+    error_code = str(getattr(error, "code", "") or "").lower()
+    error_message = str(getattr(error, "message", error)).lower()
+    if isinstance(error, AuthInvalidCredentialsError) or error_code == "invalid_credentials" or "invalid login credentials" in error_message:
+        return "invalid"
+    if error_code in {"email_not_confirmed", "email_not_verified"} or "email not confirmed" in error_message:
+        return "unconfirmed"
+    return "service"
 
 
 RESPONSES = {
@@ -106,22 +118,30 @@ def home():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if session.get("user_id") and session.get("username"):
+        return redirect(url_for("home"))
     if request.method == "GET":
         return render_template("login.html")
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
     try:
         auth_response = supabase_client().auth.sign_in_with_password({"email": email, "password": password})
-    except Exception:
-        return redirect(url_for("login", error="invalid"))
-    if auth_response.user and auth_response.session:
-        user_metadata = auth_response.user.user_metadata or {}
-        session.clear()
-        session["username"] = user_metadata.get("username", email.split("@", 1)[0])
-        session["user_id"] = str(auth_response.user.id)
-        session["email"] = auth_response.user.email
-        return redirect(url_for("welcome"))
-    return redirect(url_for("login", error="invalid"))
+    except AuthError as error:
+        return redirect(url_for("login", error=login_error_code(error)))
+    except (httpx.HTTPError, RuntimeError):
+        return redirect(url_for("login", error="service"))
+    user = getattr(auth_response, "user", None)
+    auth_session = getattr(auth_response, "session", None)
+    if user is None or auth_session is None:
+        if user is not None and not (getattr(user, "email_confirmed_at", None) or getattr(user, "confirmed_at", None)):
+            return redirect(url_for("login", error="unconfirmed"))
+        return redirect(url_for("login", error="service"))
+    user_metadata = user.user_metadata or {}
+    session.clear()
+    session["username"] = user_metadata.get("username", email.split("@", 1)[0])
+    session["user_id"] = str(user.id)
+    session["email"] = user.email
+    return redirect(url_for("home"))
 
 
 @app.route("/register", methods=["GET", "POST"])
