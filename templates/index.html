@@ -16,7 +16,14 @@
         <a href="#check-ins">Check-ins</a>
         <a href="#about">About Aura</a>
       </div>
-      <a class="nav-action" href="/login">Sign in</a>
+      {% if session.get('user_id') and session.get('username') %}
+        <div class="nav-account">
+          <a class="nav-action" href="/welcome">{{ session.get('username') }}</a>
+          <a class="nav-logout" href="/logout">Log out</a>
+        </div>
+      {% else %}
+        <a class="nav-action" href="/login">Sign in</a>
+      {% endif %}
     </nav>
   </header>
 
@@ -28,7 +35,11 @@
         <p>Aura is a gentle place to pause, reflect, and find a next step that feels manageable. No pressure—just support when you need it.</p>
         <div class="hero-actions">
           <a class="button" href="#check-ins">Start a check-in</a>
-          <a class="button button--quiet" href="/register">Create an account</a>
+          {% if session.get('user_id') and session.get('username') %}
+            <a class="button button--quiet" href="/welcome">Welcome, {{ session.get('username') }}</a>
+          {% else %}
+            <a class="button button--quiet" href="/register">Create an account</a>
+          {% endif %}
         </div>
         <div class="trust-row"><span class="trust-icon"><i class="bx bx-heart"></i></span>Private, judgement-free tools for everyday wellbeing.</div>
       </div>
@@ -65,8 +76,8 @@
     <section class="section section--soft" id="about"><div class="section-inner"><div class="about-panel"><div><span class="eyebrow">About Aura</span><h2>Care starts with being heard.</h2></div><p>Aura was created as a thoughtful starting point for mental wellbeing. We believe support should feel accessible, human, and free from judgement. Use these resources to learn about yourself, then reach out to a trusted person or qualified professional whenever you need more support.</p></div></div></section>
   </main>
 
-  <footer class="site-footer"><div class="footer-inner"><span>© 2026 Aura. Made for gentler days.</span><div class="footer-links"><a href="#support">Explore</a><a href="#check-ins">Check-ins</a><a href="/login">Sign in</a></div></div></footer>
-  <div class="welcome-overlay" id="welcome-overlay"><div class="welcome-card"><a class="brand" href="/">au<span class="brand-mark">ra</span></a><h2>Your space to pause.</h2><p>Sign in to save your reflections, or create a private account to begin.</p><a class="button" href="/login">Sign in</a><a class="button button--quiet" href="/register">Create account</a><button class="overlay-dismiss" id="overlay-dismiss" type="button">Continue as guest</button></div></div>
+  <footer class="site-footer"><div class="footer-inner"><span>© 2026 Aura. Made for gentler days.</span><div class="footer-links"><a href="#support">Explore</a><a href="#check-ins">Check-ins</a>{% if session.get('user_id') and session.get('username') %}<a href="/logout">Log out</a>{% else %}<a href="/login">Sign in</a>{% endif %}</div></div></footer>
+  {% if not (session.get('user_id') and session.get('username')) %}<div class="welcome-overlay" id="welcome-overlay"><div class="welcome-card"><a class="brand" href="/">au<span class="brand-mark">ra</span></a><h2>Your space to pause.</h2><p>Sign in to save your reflections, or create a private account to begin.</p><a class="button" href="/login">Sign in</a><a class="button button--quiet" href="/register">Create account</a><button class="overlay-dismiss" id="overlay-dismiss" type="button">Continue as guest</button></div></div>{% endif %}
 
   <aside class="chat-panel" id="chatbot-container" aria-label="Aura support chat" hidden>
     <div class="chat-head"><i class="bx bx-message-rounded-dots"></i> Aura support</div>
@@ -85,7 +96,7 @@
     const chatHistory=[];
     function addMessage(label, message) { const row = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = label + ': '; row.append(strong, document.createTextNode(message)); messages.append(row); messages.scrollTop = messages.scrollHeight; }
     form.addEventListener('submit', async (event) => { event.preventDefault(); const message = input.value.trim(); if (!message) return; addMessage('You', message); chatHistory.push({role:'user',content:message}); input.value = ''; try { const response = await fetch('/chat', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken}, body:JSON.stringify({message,history:chatHistory.slice(-8)}) }); const data = await response.json(); const reply=data.response || 'Sorry, I could not respond right now.'; addMessage('Aura', reply); chatHistory.push({role:'assistant',content:reply}); } catch { addMessage('Aura', 'Sorry, something went wrong. Please try again.'); } });
-    document.getElementById('overlay-dismiss').addEventListener('click', () => document.getElementById('welcome-overlay').hidden = true);
+    document.getElementById('overlay-dismiss')?.addEventListener('click', () => document.getElementById('welcome-overlay').hidden = true);
     const notes=[['One small pause','Take a breath. You do not have to figure everything out at once.'],['A gentle reminder','Rest is productive when your mind needs it.'],['Your pace is enough','Small steps still count as progress.'],['Stay with this moment','You only need to handle the next kind thing.']]; let noteIndex=0; setInterval(()=>{noteIndex=(noteIndex+1)%notes.length;const note=document.getElementById('wellbeing-note');note.classList.add('is-changing');setTimeout(()=>{note.querySelector('strong').textContent=notes[noteIndex=(noteIndex+1)%notes.length][0];note.querySelector('span').textContent=notes[noteIndex][1];note.classList.remove('is-changing');},360);},10000);
     const typed=document.getElementById('hero-typed'); const phrases=['Aura.','here to believe in you.','your all-time buddy.']; let phrase=0,letter=phrases[0].length,deleting=false; function typeHeadline(){const current=phrases[phrase];typed.textContent=current.slice(0,letter);let delay=deleting?48:88;if(!deleting&&letter===current.length){deleting=true;delay=1900;}else if(deleting&&letter===0){deleting=false;phrase=(phrase+1)%phrases.length;delay=350;}else{letter+=deleting?-1:1;}setTimeout(typeHeadline,delay);} setTimeout(typeHeadline,1200);
   </script>
