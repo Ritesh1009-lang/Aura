@@ -1,0 +1,7 @@
+.venv/
+quiz/venv/
+__pycache__/
+*.py[cod]
+archive/legacy-data/
+archive/legacy-quiz/quiz/venv/
+.env

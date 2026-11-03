@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura — A calmer place to start</title>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="Main navigation">
+      <a class="brand" href="/">au<span class="brand-mark">ra</span></a>
+      <div class="nav-links">
+        <a href="#support">Explore</a>
+        <a href="#check-ins">Check-ins</a>
+        <a href="#about">About Aura</a>
+      </div>
+      <a class="nav-action" href="/login">Sign in</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Mental wellbeing, at your pace</span>
+        <h1>We are <em><span id="hero-typed" aria-live="polite">Aura.</span><span class="type-caret" aria-hidden="true"></span></em></h1>
+        <p>Aura is a gentle place to pause, reflect, and find a next step that feels manageable. No pressure—just support when you need it.</p>
+        <div class="hero-actions">
+          <a class="button" href="#check-ins">Start a check-in</a>
+          <a class="button button--quiet" href="/register">Create an account</a>
+        </div>
+        <div class="trust-row"><span class="trust-icon"><i class="bx bx-heart"></i></span>Private, judgement-free tools for everyday wellbeing.</div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <img class="hero-image" src="{{ url_for('static', filename='images/AURA.jpg') }}" alt="">
+        <div class="floating-note" id="wellbeing-note"><strong>One small pause</strong><span>Take a breath. You do not have to figure everything out at once.</span></div>
+      </div>
+    </section>
+
+    <section class="section section--soft" id="support">
+      <div class="section-inner">
+        <div class="section-heading"><span class="eyebrow">A place to begin</span><h2>Support that meets you where you are.</h2><p>Explore common experiences, learn what to notice, and choose a gentle next step.</p></div>
+        <div class="support-grid">
+          <article class="support-card"><div class="card-icon"><i class="bx bx-wind"></i></div><h3>Feeling anxious</h3><p>Notice the signals of anxiety and make space for a calmer moment.</p></article>
+          <article class="support-card"><div class="card-icon"><i class="bx bx-cloud"></i></div><h3>Low mood</h3><p>Put words to a difficult day and find small ways to care for yourself.</p></article>
+          <article class="support-card"><div class="card-icon"><i class="bx bx-mobile-alt"></i></div><h3>Digital balance</h3><p>Reflect on the role your phone plays in your rest, focus, and connection.</p></article>
+          <article class="support-card"><div class="card-icon"><i class="bx bx-sun"></i></div><h3>Everyday calm</h3><p>Build a kinder routine with simple, realistic practices.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="check-ins">
+      <div class="section-inner">
+        <div class="section-heading"><span class="eyebrow">Self-reflection tools</span><h2>Take a moment to check in.</h2><p>These short check-ins can help you reflect on what you are experiencing. They are not medical diagnoses.</p></div>
+        <div class="quiz-grid">
+          <article class="quiz-card"><img src="{{ url_for('static', filename='images/anxiety.jpg') }}" alt="Person sitting calmly beside a window"><div class="quiz-card__body"><h3>Anxiety check-in</h3><p>Explore patterns of worry, tension, and overwhelm.</p><a class="text-link" href="/quiz/anxiety">Begin check-in →</a></div></article>
+          <article class="quiz-card"><img src="{{ url_for('static', filename='images/phone addiction.jpg') }}" alt="Person using a mobile phone"><div class="quiz-card__body"><h3>Digital balance</h3><p>Reflect on your relationship with your phone.</p><a class="text-link" href="/quiz/phone_addiction">Begin check-in →</a></div></article>
+          <article class="quiz-card"><img src="{{ url_for('static', filename='images/depression.jpg') }}" alt="Person looking out of a window"><div class="quiz-card__body"><h3>Low mood check-in</h3><p>Reflect on changes in mood, energy, and interest.</p><a class="text-link" href="/quiz/depression">Begin check-in →</a></div></article>
+          <article class="quiz-card"><img src="{{ url_for('static', filename='images/fear.jpg') }}" alt="Person walking through a misty forest"><div class="quiz-card__body"><h3>Fear check-in</h3><p>Explore how fear may be showing up for you.</p><a class="text-link" href="/quiz/fear">Begin check-in →</a></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--soft" id="about"><div class="section-inner"><div class="about-panel"><div><span class="eyebrow">About Aura</span><h2>Care starts with being heard.</h2></div><p>Aura was created as a thoughtful starting point for mental wellbeing. We believe support should feel accessible, human, and free from judgement. Use these resources to learn about yourself, then reach out to a trusted person or qualified professional whenever you need more support.</p></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="footer-inner"><span>© 2026 Aura. Made for gentler days.</span><div class="footer-links"><a href="#support">Explore</a><a href="#check-ins">Check-ins</a><a href="/login">Sign in</a></div></div></footer>
+  <div class="welcome-overlay" id="welcome-overlay"><div class="welcome-card"><a class="brand" href="/">au<span class="brand-mark">ra</span></a><h2>Your space to pause.</h2><p>Sign in to save your reflections, or create a private account to begin.</p><a class="button" href="/login">Sign in</a><a class="button button--quiet" href="/register">Create account</a><button class="overlay-dismiss" id="overlay-dismiss" type="button">Continue as guest</button></div></div>
+
+  <aside class="chat-panel" id="chatbot-container" aria-label="Aura support chat" hidden>
+    <div class="chat-head"><i class="bx bx-message-rounded-dots"></i> Aura support</div>
+    <div class="chat-body" id="chat-messages"><div><strong>Aura:</strong> Hi. What's on your mind today?</div></div>
+    <form class="chat-form" id="chat-form"><input type="text" id="user-input" placeholder="Write a message…" aria-label="Your message" autocomplete="off"><button type="submit">Send</button></form>
+  </aside>
+  <button class="chat-toggle" id="toggle-chatbot" type="button" aria-label="Open support chat" aria-expanded="false"><span class="chat-hint">Hi, I’m Aura</span><i class="bx bx-message-rounded"></i></button>
+  <script>
+    const csrfToken = '{{ csrf_token() }}';
+    const panel = document.getElementById('chatbot-container');
+    const toggle = document.getElementById('toggle-chatbot');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    const messages = document.getElementById('chat-messages');
+    toggle.addEventListener('click', () => { const open = panel.classList.toggle('is-open'); panel.hidden = !open; toggle.setAttribute('aria-expanded', open); toggle.setAttribute('aria-label', open ? 'Close support chat' : 'Open support chat'); if (open) input.focus(); });
+    const chatHistory=[];
+    function addMessage(label, message) { const row = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = label + ': '; row.append(strong, document.createTextNode(message)); messages.append(row); messages.scrollTop = messages.scrollHeight; }
+    form.addEventListener('submit', async (event) => { event.preventDefault(); const message = input.value.trim(); if (!message) return; addMessage('You', message); chatHistory.push({role:'user',content:message}); input.value = ''; try { const response = await fetch('/chat', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken}, body:JSON.stringify({message,history:chatHistory.slice(-8)}) }); const data = await response.json(); const reply=data.response || 'Sorry, I could not respond right now.'; addMessage('Aura', reply); chatHistory.push({role:'assistant',content:reply}); } catch { addMessage('Aura', 'Sorry, something went wrong. Please try again.'); } });
+    document.getElementById('overlay-dismiss').addEventListener('click', () => document.getElementById('welcome-overlay').hidden = true);
+    const notes=[['One small pause','Take a breath. You do not have to figure everything out at once.'],['A gentle reminder','Rest is productive when your mind needs it.'],['Your pace is enough','Small steps still count as progress.'],['Stay with this moment','You only need to handle the next kind thing.']]; let noteIndex=0; setInterval(()=>{noteIndex=(noteIndex+1)%notes.length;const note=document.getElementById('wellbeing-note');note.classList.add('is-changing');setTimeout(()=>{note.querySelector('strong').textContent=notes[noteIndex=(noteIndex+1)%notes.length][0];note.querySelector('span').textContent=notes[noteIndex][1];note.classList.remove('is-changing');},360);},10000);
+    const typed=document.getElementById('hero-typed'); const phrases=['Aura.','here to believe in you.','your all-time buddy.']; let phrase=0,letter=phrases[0].length,deleting=false; function typeHeadline(){const current=phrases[phrase];typed.textContent=current.slice(0,letter);let delay=deleting?48:88;if(!deleting&&letter===current.length){deleting=true;delay=1900;}else if(deleting&&letter===0){deleting=false;phrase=(phrase+1)%phrases.length;delay=350;}else{letter+=deleting?-1:1;}setTimeout(typeHeadline,delay);} setTimeout(typeHeadline,1200);
+  </script>
+</body>
+</html>
