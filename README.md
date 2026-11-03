@@ -19,7 +19,7 @@ archive/               Superseded pages, databases, and the old standalone quiz 
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open `http://127.0.0.1:5000` in a browser.
+Open `aura-livid-tau.vercel.app` in a browser.
 
 ## Supabase setup
 
