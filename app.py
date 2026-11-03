@@ -265,7 +265,7 @@ def quiz_result():
         return redirect(url_for("home"))
     score = result["score"]
     level = "low" if score <= 15 else "moderate" if score <= 27 else "high"
-    return render_template("quiz_result.html", title=result["type"].replace("_", " ").title(), score=score, level=level)
+    return render_template("quiz_result.html", title=result["type"].replace("_", " ").title(), quiz_type=result["type"], score=score, level=level)
 
 
 QUIZ_TEMPLATE = """<!doctype html><title>{{ title }} check-in | Aura</title><style>body{background:#000;color:#0ff;font:16px Arial;margin:0;padding:30px}.card{max-width:720px;margin:auto;background:#111;padding:26px;border-radius:16px;box-shadow:0 0 20px #066}a{color:#0ff}.q{border-bottom:1px solid #155;padding:16px 0}label{display:block;margin:8px 0}button{background:#0ff;border:0;padding:12px 25px;border-radius:7px;cursor:pointer;font-weight:bold}.notice{color:#ff9}</style><main class=card><a href='/'>← Back to Aura</a><h1>{{ title }} check-in</h1><p>This is a self-reflection tool, not a diagnosis.</p>{% if error %}<p class=notice>Please answer every question.</p>{% endif %}<form method=post>{% for question in questions %}{% set question_number = loop.index %}<section class=q><strong>{{ question_number }}. {{ question }}</strong>{% for value,label in [(1,'Rarely'),(2,'Sometimes'),(3,'Often'),(4,'Almost always')] %}<label><input required type=radio name='q{{ question_number }}' value='{{ value }}'> {{ label }}</label>{% endfor %}</section>{% endfor %}<button type=submit>See my result</button></form></main>"""
