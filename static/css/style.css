@@ -31,3 +31,17 @@ h1,h2,h3,p { margin-top:0; } h1,h2 { font-family:'Playfair Display',serif; lette
 @media (max-width:560px) { .nav { width:min(100% - 28px,1160px); min-height:66px; } .nav-action { padding:0 15px; min-height:38px; font-size:.85rem; } .hero { width:min(100% - 32px,1160px); padding:48px 0 64px; } h1 { font-size:3.15rem; } .hero-visual { min-height:300px; } .section { padding:68px 16px; } .support-grid,.quiz-grid { grid-template-columns:1fr; } .about-panel { padding:30px 24px; } .about-panel h2 { font-size:2.5rem; } .footer-inner { align-items:flex-start; flex-direction:column; } .auth-page { padding:16px; } .auth-card { padding:30px 22px; } }
 .page-shell { width:min(760px,calc(100% - 32px)); margin:64px auto; padding:36px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:var(--shadow); } .page-shell h1 { font-size:2.6rem; margin:12px 0; } .page-shell > p { color:var(--muted); } .checkin-question { padding:20px 0; border-top:1px solid var(--line); } .checkin-question strong { display:block; margin-bottom:12px; } .checkin-question label { display:block; padding:9px 12px; margin:7px 0; border:1px solid var(--line); border-radius:8px; cursor:pointer; } .checkin-question label:hover { background:#f1f6f3; } .checkin-question input { margin-right:8px; accent-color:var(--forest); } .notice { color:#9d3b36; font-weight:600; } .result-score { display:inline-block; margin:15px 0; padding:10px 18px; border-radius:999px; background:var(--sage); color:var(--forest); font-size:1.1rem; font-weight:700; }
 .password-field { position:relative; } .password-field input { padding-right:48px; } .password-toggle { position:absolute; right:8px; top:50%; width:34px; height:34px; padding:0; border:0; border-radius:7px; background:transparent; color:var(--forest); cursor:pointer; transform:translateY(-50%); } .password-toggle:hover { background:var(--sage); }
+.quiz-instructions { font-size:.92rem; }
+.quiz-progress { margin:22px 0 12px; color:var(--muted); font-size:.9rem; font-weight:700; }
+.checkin-question { min-width:0; margin:0; padding:24px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+.checkin-question legend { max-width:100%; padding:0; color:var(--ink); font-size:1.2rem; font-weight:700; }
+.checkin-question label { display:flex; align-items:center; gap:10px; padding:12px 14px; margin:10px 0 0; border:1px solid var(--line); border-radius:10px; cursor:pointer; }
+.checkin-question label:hover,.checkin-question label:has(input:checked) { border-color:var(--forest); background:#f1f6f3; }
+.checkin-question input { flex:0 0 auto; width:18px; height:18px; margin:0; accent-color:var(--forest); }
+.checkin-question input:focus-visible,.quiz-navigation button:focus-visible,.quiz-fallback-submit:focus-visible { outline:3px solid #e4a77d; outline-offset:3px; }
+.checkin-question[aria-invalid="true"] { border-color:#9d3b36; }
+.quiz-answer-error { margin:12px 0 0; color:#9d3b36; font-weight:600; }
+.quiz-navigation { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; margin-top:22px; }
+.quiz-navigation button:disabled { cursor:not-allowed; opacity:.5; }
+.quiz-navigation [hidden],.quiz-answer-error[hidden],.quiz-fallback-submit[hidden] { display:none !important; }
+@media (max-width:560px) { .page-shell { margin:24px auto; padding:26px 20px; } .quiz-navigation button { flex:1 1 auto; } }

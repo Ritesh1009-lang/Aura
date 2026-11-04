@@ -1,1 +1,42 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ title }} check-in | Aura</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head><body><main class="page-shell"><a class="brand" href="/">au<span class="brand-mark">ra</span></a><span class="eyebrow">Self-reflection</span><h1>{{ title }} check-in</h1><p>This short check-in is for reflection, not diagnosis. Choose the response that best reflects your recent experience.</p>{% if error %}<p class="notice">Please answer every question before continuing.</p>{% endif %}<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for question in questions %}{% set number=loop.index %}<section class="checkin-question"><strong>{{ number }}. {{ question }}</strong>{% for value,label in [(1,'Rarely'),(2,'Sometimes'),(3,'Often'),(4,'Almost always')] %}<label><input required type="radio" name="q{{ number }}" value="{{ value }}">{{ label }}</label>{% endfor %}</section>{% endfor %}<button class="button" type="submit">See my reflection</button></form></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title }} check-in | Aura</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/quiz.js') }}" defer></script>
+</head>
+<body>
+  <main class="page-shell">
+    <a class="brand" href="/">au<span class="brand-mark">ra</span></a>
+    <span class="eyebrow">Self-reflection</span>
+    <h1>{{ title }} check-in</h1>
+    <p>This short check-in is for reflection, not diagnosis. Choose the response that best reflects your recent experience.</p>
+    {% if error %}<p class="notice" role="alert">Please answer every question before continuing.</p>{% endif %}
+    <p id="quiz-instructions" class="quiz-instructions">Choose one answer for each question. Use Previous and Next, or press Alt + Left/Right to move between questions.</p>
+    <form id="quiz-form" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="quiz-progress" id="quiz-progress" role="status" aria-live="polite">Question 1 of {{ questions|length }}</p>
+      <div class="quiz-cards">
+        {% for question in questions %}
+          {% set number = loop.index %}
+          <fieldset class="checkin-question" data-question="{{ number }}" aria-describedby="quiz-instructions" tabindex="-1">
+            <legend>{{ question }}</legend>
+            {% for value, label in [(1, 'Rarely'), (2, 'Sometimes'), (3, 'Often'), (4, 'Almost always')] %}
+              <label><input type="radio" name="q{{ number }}" value="{{ value }}"> {{ label }}</label>
+            {% endfor %}
+          </fieldset>
+        {% endfor %}
+      </div>
+      <p class="quiz-answer-error" id="quiz-answer-error" role="alert" hidden>Please select an answer to continue.</p>
+      <nav class="quiz-navigation" id="quiz-navigation" aria-label="Check-in questions" hidden>
+        <button class="button button--quiet" id="quiz-previous" type="button">← Previous</button>
+        <button class="button" id="quiz-next" type="button">Next →</button>
+        <button class="button" id="quiz-submit" type="submit" hidden>See my reflection</button>
+      </nav>
+      <button class="button quiz-fallback-submit" type="submit">See my reflection</button>
+    </form>
+  </main>
+</body>
+</html>
