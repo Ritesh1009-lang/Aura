@@ -1,1 +1,42 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your reflection | Aura</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head><body class="auth-page"><main class="page-shell"><a class="brand" href="/">au<span class="brand-mark">ra</span></a><span class="eyebrow">Your reflection</span><h1>{{ title }} check-in</h1><div class="result-score">Score: {{ score }} / 40 · {{ level|title }} range</div><p>This result is an informal reflection, not a diagnosis. If these feelings are affecting your daily life or safety, consider talking with a qualified mental-health professional or someone you trust.</p><div class="hero-actions"><a class="button" href="{{ url_for('quiz', quiz_type=quiz_type) }}">Retake this check-in</a><a class="button button--quiet" href="/">Return home</a></div></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your reflection | Aura</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+    <main class="page-shell result-page">
+        <a class="brand" href="/">au<span class="brand-mark">ra</span></a>
+        <span class="eyebrow">Your reflection</span>
+        <h1>{{ title }} check-in</h1>
+        <div class="result-score">Score: {{ score }} / 40 · {{ level|title }} range</div>
+        <section class="result-guidance" aria-labelledby="reflection-heading">
+            <h2 id="reflection-heading">What this may mean</h2>
+            <p>{{ guidance.reflection }}</p>
+        </section>
+        <section class="result-guidance" aria-labelledby="steps-heading">
+            <h2 id="steps-heading">Gentle next steps</h2>
+            <ul>
+                {% for step in guidance.steps %}
+                    <li>{{ step }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% if urgent_support %}
+            <section class="urgent-support" role="alert" aria-labelledby="urgent-heading">
+                <h2 id="urgent-heading">Please reach out for support</h2>
+                <p>Your answer about thoughts of self-harm or suicide suggests you may be going through something difficult. You deserve support and do not have to handle this alone.</p>
+                <p>Please tell someone you trust and contact a qualified mental-health professional. If you may act on these thoughts or are in immediate danger, call your local emergency number or go to the nearest emergency department now. If possible, ask someone you trust to stay with you.</p>
+            </section>
+        {% endif %}
+        <p class="result-limits">This automated check-in is for reflection only. It cannot assess your health, explain what you are experiencing, or replace advice from a qualified professional. A score is not a diagnosis.</p>
+        <p class="result-support">If your feelings persist, feel severe or worrying, or affect daily life, consider speaking with a qualified mental-health professional. You can also reach out to someone you trust.</p>
+        <div class="hero-actions">
+            <a class="button" href="/">Return home</a>
+            <a class="button button--quiet" href="{{ url_for('quiz', quiz_type=quiz_type) }}">Try this check-in again</a>
+        </div>
+    </main>
+</body>
+</html>

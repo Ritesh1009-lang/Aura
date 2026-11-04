@@ -3,14 +3,18 @@
 Run with: .venv\\Scripts\\python app.py
 """
 
+import base64
+import hashlib
+import json
 import os
 import re
 import secrets
-from datetime import date
+from datetime import date, datetime, timezone
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 import httpx
+from cryptography.fernet import Fernet, InvalidToken
 from supabase import create_client
 from supabase_auth.errors import AuthError, AuthInvalidCredentialsError
 
@@ -56,6 +60,36 @@ def supabase_admin_client():
     if not SUPABASE_SECRET_KEY:
         raise RuntimeError("SUPABASE_SECRET_KEY is required for secure server-side result storage.")
     return create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+
+
+def _supabase_token_cipher():
+    secret = app.config["SECRET_KEY"].encode("utf-8")
+    key = base64.urlsafe_b64encode(hashlib.sha256(secret).digest())
+    return Fernet(key)
+
+
+def _encrypt_supabase_tokens(auth_session):
+    tokens = {
+        "access_token": auth_session.access_token,
+        "refresh_token": auth_session.refresh_token,
+    }
+    if not all(tokens.values()):
+        raise ValueError("Supabase did not return a complete auth session.")
+    encrypted_tokens = _supabase_token_cipher().encrypt(json.dumps(tokens).encode("utf-8"))
+    return encrypted_tokens.decode("ascii")
+
+
+def _load_supabase_tokens(encrypted_tokens):
+    if not encrypted_tokens:
+        return None
+    try:
+        token_data = _supabase_token_cipher().decrypt(encrypted_tokens.encode("ascii"))
+        tokens = json.loads(token_data)
+    except (InvalidToken, AttributeError, TypeError, UnicodeEncodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(tokens, dict) or not tokens.get("access_token") or not tokens.get("refresh_token"):
+        return None
+    return tokens
 
 
 def login_error_code(error):
@@ -110,6 +144,65 @@ QUIZZES = {
     "fear": ["How often do you feel afraid or scared?", "Do you avoid situations that make you fearful?", "Do you experience physical symptoms like trembling or sweating when afraid?", "Do you feel paralyzed or unable to act when fearful?", "Do you have recurring nightmares or intrusive thoughts about your fears?", "Do you feel a sense of dread or impending doom?", "Do you feel your fears are irrational or exaggerated?", "Do you feel your fears interfere with daily life?", "Do you feel the need to constantly check for safety or reassurance?", "Do you feel your fears are out of your control?"],
 }
 
+QUIZ_RESULT_GUIDANCE = {
+    "anxiety": {
+        "low": {
+            "reflection": "Your answers suggest that worry or tension may be showing up only occasionally in the areas covered by this check-in.",
+            "steps": ["Notice what helps you feel grounded, and make time for it when you can.", "Try a few slow breaths or a short break when tension comes up."],
+        },
+        "moderate": {
+            "reflection": "Your answers suggest that worry or tension may be coming up in several parts of your routine.",
+            "steps": ["Choose one manageable task and take it one step at a time.", "Try a grounding exercise, such as naming five things you can see, and protect time for rest."],
+        },
+        "high": {
+            "reflection": "Your answers suggest that worry or tension has been showing up often across the areas in this check-in.",
+            "steps": ["Pause for a slow, comfortable exhale and focus on one immediate need.", "Consider sharing what has been difficult with someone you trust and making space for regular rest."],
+        },
+    },
+    "depression": {
+        "low": {
+            "reflection": "Your answers suggest that low mood or changes in energy may be happening less often in the areas covered by this check-in.",
+            "steps": ["Keep up small routines that support you, such as regular meals, rest, or time with someone you enjoy.", "Notice how you feel over time without judging yourself."],
+        },
+        "moderate": {
+            "reflection": "Your answers suggest that low mood or changes in energy may be affecting several parts of your routine.",
+            "steps": ["Try one small, manageable activity that usually feels supportive, even if you do it briefly.", "Reach out to someone you trust and give yourself room for rest and regular meals."],
+        },
+        "high": {
+            "reflection": "Your answers suggest that low mood or related changes have been coming up often in the areas covered by this check-in.",
+            "steps": ["Focus on basic care in small steps, such as water, food, rest, or sitting near someone supportive.", "Please consider talking with a qualified mental-health professional or someone you trust about what you are experiencing."],
+        },
+    },
+    "phone_addiction": {
+        "low": {
+            "reflection": "Your answers suggest that phone use may be fitting comfortably into many of the habits covered by this check-in.",
+            "steps": ["Keep noticing when your phone use feels useful and when you would prefer a break.", "Try a screen-free moment during a meal or before bed if that feels helpful."],
+        },
+        "moderate": {
+            "reflection": "Your answers suggest that phone use may sometimes interrupt rest, focus, or time with others.",
+            "steps": ["Try one small boundary, such as silencing non-urgent notifications during a chosen activity.", "Consider keeping your phone out of reach for part of a meal or before bed."],
+        },
+        "high": {
+            "reflection": "Your answers suggest that phone habits may be getting in the way of several parts of your day.",
+            "steps": ["Pick one routine to make phone-free for a short, realistic period.", "Turn off non-essential notifications and plan an offline activity that feels enjoyable or restful."],
+        },
+    },
+    "fear": {
+        "low": {
+            "reflection": "Your answers suggest that fear may be having a limited effect on the areas of daily life covered by this check-in.",
+            "steps": ["Notice what helps you feel safe and steady when fear comes up.", "Take situations at a pace that feels manageable rather than pressuring yourself."],
+        },
+        "moderate": {
+            "reflection": "Your answers suggest that fear may sometimes affect choices or routines in the areas covered by this check-in.",
+            "steps": ["Use a grounding exercise and focus on what you can see, hear, and feel in the present moment.", "If it feels safe, consider taking one small step toward an activity you have been avoiding."],
+        },
+        "high": {
+            "reflection": "Your answers suggest that fear may be affecting several parts of your daily routine.",
+            "steps": ["Focus on a calming, familiar activity and take things one manageable step at a time.", "Consider talking through what is worrying you with someone you trust or a qualified mental-health professional."],
+        },
+    },
+}
+
 
 @app.get("/")
 def home():
@@ -136,8 +229,12 @@ def login():
         if user is not None and not (getattr(user, "email_confirmed_at", None) or getattr(user, "confirmed_at", None)):
             return redirect(url_for("login", error="unconfirmed"))
         return redirect(url_for("login", error="service"))
-    user_metadata = user.user_metadata or {}
     session.clear()
+    try:
+        session["_supabase_tokens"] = _encrypt_supabase_tokens(auth_session)
+    except (AttributeError, TypeError, ValueError):
+        return redirect(url_for("login", error="service"))
+    user_metadata = user.user_metadata or {}
     session["username"] = user_metadata.get("username", email.split("@", 1)[0])
     session["user_id"] = str(user.id)
     session["email"] = user.email
@@ -223,6 +320,52 @@ def logout():
     return redirect(url_for("home"))
 
 
+@app.get("/reflections")
+def reflections():
+    if not session.get("user_id") or not session.get("username"):
+        return redirect(url_for("login"))
+    tokens = _load_supabase_tokens(session.get("_supabase_tokens"))
+    if tokens is None:
+        return render_template(
+            "reflections.html",
+            results=[],
+            error="Please sign out and sign in again to securely load your reflections.",
+        )
+    try:
+        client = supabase_client()
+        auth_response = client.auth.set_session(tokens["access_token"], tokens["refresh_token"])
+        refreshed_session = auth_response.session or client.auth.get_session()
+        if refreshed_session is None:
+            raise RuntimeError("Supabase did not restore the authenticated session.")
+        session["_supabase_tokens"] = _encrypt_supabase_tokens(refreshed_session)
+        response = (
+            client.table("quiz_results")
+            .select("quiz_type,score,created_at")
+            .eq("user_id", session["user_id"])
+            .order("created_at", desc=True)
+            .execute()
+        )
+        results = []
+        for row in response.data:
+            score = int(row["score"])
+            created_at = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+            results.append({
+                "quiz_type": row["quiz_type"],
+                "title": "Digital balance" if row["quiz_type"] == "phone_addiction" else row["quiz_type"].title(),
+                "score": score,
+                "level": "low" if score <= 15 else "moderate" if score <= 27 else "high",
+                "completed_at": created_at.astimezone(timezone.utc).strftime("%b %d, %Y").replace(" 0", " "),
+            })
+    except Exception:
+        app.logger.exception("Unable to load quiz reflections")
+        return render_template(
+            "reflections.html",
+            results=[],
+            error="We could not load your reflections right now. Please try again later.",
+        )
+    return render_template("reflections.html", results=results, error=None)
+
+
 @app.post("/chat")
 def chat():
     payload = request.get_json(silent=True) or {}
@@ -247,7 +390,7 @@ def quiz(quiz_type):
             return redirect(url_for("quiz", quiz_type=quiz_type, error="incomplete"))
         if any(answer not in (1, 2, 3, 4) for answer in answers):
             return redirect(url_for("quiz", quiz_type=quiz_type, error="invalid"))
-        session["quiz_result"] = {"type": quiz_type, "score": sum(answers)}
+        session["quiz_result"] = {"type": quiz_type, "score": sum(answers), "answers": answers}
         if "user_id" in session:
             try:
                 supabase_admin_client().table("quiz_results").insert({"user_id": session["user_id"], "quiz_type": quiz_type, "score": sum(answers)}).execute()
@@ -263,14 +406,31 @@ def quiz_result():
     result = session.get("quiz_result")
     if not result:
         return redirect(url_for("home"))
-    score = result["score"]
+    quiz_type = result.get("type")
+    guidance = QUIZ_RESULT_GUIDANCE.get(quiz_type)
+    if not guidance:
+        return redirect(url_for("home"))
+    answers = result.get("answers", [])
+    try:
+        score = int(result["score"])
+    except (KeyError, TypeError, ValueError):
+        return redirect(url_for("home"))
+    if not 10 <= score <= 40:
+        return redirect(url_for("home"))
     level = "low" if score <= 15 else "moderate" if score <= 27 else "high"
-    return render_template("quiz_result.html", title=result["type"].replace("_", " ").title(), quiz_type=result["type"], score=score, level=level)
+    urgent_support = quiz_type == "depression" and len(answers) == 10 and answers[8] in (3, 4)
+    return render_template(
+        "quiz_result.html",
+        title="Digital balance" if quiz_type == "phone_addiction" else quiz_type.title(),
+        quiz_type=quiz_type,
+        score=score,
+        level=level,
+        guidance=guidance[level],
+        urgent_support=urgent_support,
+    )
 
 
 QUIZ_TEMPLATE = """<!doctype html><title>{{ title }} check-in | Aura</title><style>body{background:#000;color:#0ff;font:16px Arial;margin:0;padding:30px}.card{max-width:720px;margin:auto;background:#111;padding:26px;border-radius:16px;box-shadow:0 0 20px #066}a{color:#0ff}.q{border-bottom:1px solid #155;padding:16px 0}label{display:block;margin:8px 0}button{background:#0ff;border:0;padding:12px 25px;border-radius:7px;cursor:pointer;font-weight:bold}.notice{color:#ff9}</style><main class=card><a href='/'>← Back to Aura</a><h1>{{ title }} check-in</h1><p>This is a self-reflection tool, not a diagnosis.</p>{% if error %}<p class=notice>Please answer every question.</p>{% endif %}<form method=post>{% for question in questions %}{% set question_number = loop.index %}<section class=q><strong>{{ question_number }}. {{ question }}</strong>{% for value,label in [(1,'Rarely'),(2,'Sometimes'),(3,'Often'),(4,'Almost always')] %}<label><input required type=radio name='q{{ question_number }}' value='{{ value }}'> {{ label }}</label>{% endfor %}</section>{% endfor %}<button type=submit>See my result</button></form></main>"""
-RESULT_TEMPLATE = """<!doctype html><title>Quiz result | Aura</title><style>body{background:#000;color:#0ff;font:18px Arial;display:grid;place-items:center;min-height:100vh;margin:0}.card{max-width:600px;text-align:center;border:2px solid #0ff;border-radius:20px;padding:40px;box-shadow:0 0 20px #0ff}a{color:#0ff;border:1px solid #0ff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block}</style><main class=card><h1>{{ title }} check-in</h1><h2>Score: {{ score }} / 40</h2><p>Your responses fall in the <strong>{{ level }}</strong> range for this informal check-in. It is not a diagnosis. If these feelings are affecting your life or safety, consider speaking with a qualified mental-health professional or a trusted person.</p><a href='/'>Return home</a></main>"""
-
 
 @app.errorhandler(404)
 def not_found(_error):
